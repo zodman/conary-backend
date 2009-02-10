@@ -669,6 +669,9 @@ class PackageKitConaryBackend(PackageKitBaseBackend):
 
         repo = summary[3].split("#")[0]
         metadata = eval(summary[3].split("#")[1])
+        short_package_id  = ""
+        for i in summary[0:3]:
+            short_package_id += i +';'
 
         log.info("Metadata--------------------")
         log.info(metadata)
@@ -685,13 +688,13 @@ class PackageKitConaryBackend(PackageKitBaseBackend):
 
             url = "http://www.foresightlinux.org/packages/%s.html" % name
 
+            categories  = ""
             if metadata.has_key("categorie"):
-                categories =  metadata["categorie"]
+                categories =  Cache()._getCategorieBase( groupMap, metadata['categorie'])
             else:
                 categories = None
-
             # Package size goes here, but I don't know how to find that for conary packages.
-            self.details(package_id, None, categories, longDesc, url, 0)
+            self.details(short_package_id, None, categories, longDesc, url, 0)
         else:
             self.error(ERROR_PACKAGE_NOT_FOUND, 'Package was not found')
 

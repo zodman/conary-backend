@@ -80,12 +80,12 @@ class XMLRepo:
 
 class XMLCache:
     #xml_files = ["foresight.rpath.org@fl:2"]
-    xml_path = "/var/cache/conary/xmlrepo/"
     xml_files = []
     server = "http://packages.foresightlinux.org/cache/"
     repos = []
     dbPath = '/var/cache/conary/'
     jobPath = dbPath + 'jobs'
+    xml_path =  dbPath + "xmlrepo/"
 
     def __init__(self):
         con = ConaryPk()
@@ -155,8 +155,27 @@ class XMLCache:
             openfile = open( filename ,'w')
             openfile.writelines(wget.readlines())
             openfile.close()
+    def _getCategorieBase(self, mapDict, categorieList ):
+        if not categorieList:
+            return None
+
+        tempDict = {}
+        for cat in categorieList:
+            map = mapDict[cat]
+            if tempDict.has_key(map):
+                tempDict[map] = tempDict[map] + 1
+            else:
+                tempDict[map] = 1
+        tmp = 0
+        t_key = ""
+        for key, value in tempDict.items():
+            if value > tmp:
+                t_key =  key
+                tmp  = value
+        return t_key
+
 
 if __name__ == '__main__':
-    new_xml = XMLCache()
-    new_xml.refresh()
-    print new_xml.search("chat")
+    from conaryBackend import groupMap
+    XMLCache()._getCategorieBase( groupMap,  ['GTK', 'Graphics', 'Photography', 'Viewer'])
+
