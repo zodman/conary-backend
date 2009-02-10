@@ -649,7 +649,7 @@ class PackageKitConaryBackend(PackageKitBaseBackend):
         self.update_detail(package_id, update, obsolete, vendor_url, bz_url, cve_url,
                 reboot, desc, changelog="", state="", issued="", updated="")
 
-    @ExceptionHandler
+   # @ExceptionHandler
     def get_details(self, package_ids):
         '''
         Print a detailed description for a given package
@@ -662,15 +662,33 @@ class PackageKitConaryBackend(PackageKitBaseBackend):
         log.info(package_ids[0])
         package_id = package_ids[0]
         name, version, flavor, installed = self._findPackage(package_id)
+        
+        summary = package_id.split(";")
+        log.info("====== summar")
+        log.info(summary)
 
-        log.info("name--------------------")
-        log.info((package_id, name))
+        repo = summary[3].split("#")[0]
+        metadata = eval(summary[3].split("#")[1])
+
+        log.info("Metadata--------------------")
+        log.info(metadata)
 
         if name:
-            shortDesc = self._get_metadata(package_id, 'shortDesc') or name
-            longDesc = self._get_metadata(package_id, 'longDesc') or ""
-            url = "http://www.foresightlinux.org/packages/" + name + ".html"
-            categories = self._get_metadata(package_id, 'categories') or "unknown"
+            if metadata.has_key("shortDesc"):
+                shortDesc = metadata["shortDesc"] 
+            else:
+                shortDesc = ""
+            if metadata.has_key("longDesc"):
+                longDesc = metadata["longDesc"] 
+            else:
+                longDesc = ""
+
+            url = "http://www.foresightlinux.org/packages/%s.html" % name
+
+            if metadata.has_key("categorie"):
+                categories =  metadata["categorie"]
+            else:
+                categories = None
 
             # Package size goes here, but I don't know how to find that for conary packages.
             self.details(package_id, None, categories, longDesc, url, 0)
@@ -680,8 +698,13 @@ class PackageKitConaryBackend(PackageKitBaseBackend):
     def _show_package(self, name, version, flavor, status):
         '''  Show info about package'''
         package_id = self.get_package_id(name, version, flavor)
-        summary = self._get_metadata(package_id, 'shortDesc') or ""
-        self.package(package_id, status, summary)
+        summary = package_id.split(";")
+        metadata = eval(summary[3].split("#")[1])
+        if metadata.has_key("longDesc"):
+            meta = metadata["longDesc"]
+        else:
+            meta = " "
+        self.package(package_id, status, meta)
 
     def _get_status(self, notice):
         # We need to figure out how to get this info, this is a place holder
@@ -700,14 +723,19 @@ class PackageKitConaryBackend(PackageKitBaseBackend):
         self.status(STATUS_INFO)
         log.info("============== get_updates ========================")
         updateItems = self.client.fullUpdateItemList()
+        log.info("============== end get_updates ========================")
         applyList = [ (x[0], (None, None), x[1:], True) for x in updateItems ]
+        log.info("_get_update ....")
         updJob, suggMap = self._get_update(applyList)
+        log.info("_get_update ....end.")
 
         jobLists = updJob.getJobs()
+        log.info("get Jobs")
 
         totalJobs = len(jobLists)
         for num, job in enumerate(jobLists):
             status = '2'
+            log.info( (num, job)  )
             name = job[0][0]
 
             # On an erase display the old version/flavor information.
@@ -736,6 +764,7 @@ class PackageKitConaryBackend(PackageKitBaseBackend):
             log.info("======== trove ")
             log.info(troveTuple)
             installed =self.check_installed(troveTuple)
+            log.info(installed)
             name, version, flavor = troveTuple
             return name, version, flavor, installed
         else:
