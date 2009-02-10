@@ -103,7 +103,8 @@ groupMap = {
     'Viewer'              : GROUP_MULTIMEDIA,
     'WebBrowser'          : GROUP_INTERNET,
     'WebDevelopment'      : GROUP_PROGRAMMING,
-    'WordProcessor'       : GROUP_OFFICE
+    'WordProcessor'       : GROUP_OFFICE,
+    ''                    : GROUP_UNKNOWN
 }
 
 revGroupMap = {}
@@ -396,8 +397,8 @@ class PackageKitConaryBackend(PackageKitBaseBackend):
             metadata = eval(summary[3].split("#")[1])
             log.info("====== show the package ")
             log.info(metadata)
-            if metadata.has_key("longDesc"):
-                meta = metadata["longDesc"]
+            if metadata.has_key("shortDesc"):
+                meta = metadata["shortDesc"]
             else:
                 meta = " "
             self.package(package_id, status, meta )
@@ -703,8 +704,8 @@ class PackageKitConaryBackend(PackageKitBaseBackend):
         package_id = self.get_package_id(name, version, flavor)
         summary = package_id.split(";")
         metadata = eval(summary[3].split("#")[1])
-        if metadata.has_key("longDesc"):
-            meta = metadata["longDesc"]
+        if metadata.has_key("shortDesc"):
+            meta = metadata["shortDesc"]
         else:
             meta = " "
         self.package(package_id, status, meta)
