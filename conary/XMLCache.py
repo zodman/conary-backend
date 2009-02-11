@@ -73,8 +73,8 @@ class XMLRepo:
                 pkg = self._generatePackage(package)
                 pkg["label"] = self.label
                 if name.lower() in pkg["name"]:
-                    results.append(pkg)
-        return results
+                    results.append(pkg['name'])
+        return  [ self._getPackage(i) for i in set(results) ]
 
     def _searchGroupPackage(self, name):
         doc = self._open()
@@ -91,19 +91,7 @@ class XMLRepo:
         return [ self._getPackage(i) for i in set(results_name) ]
 
     def _searchDetailsPackage(self, name):
-        doc = self._open()
-        results_name = []
-        for packages in doc.childNodes:
-            for package in packages.childNodes:
-                pkg = self._generatePackage(package)
-                pkg["label"] = self.label
-                for i in pkg.keys():
-                    if i  == "label" or i == "name" or i == 'category':
-                        continue
-                    if name.lower() in pkg[i]:
-                        results_name.append(pkg['name'])
-        return [ self._getPackage(i) for i in set(results_name) ]
-
+        return self._searchPackage(name)
     def _searchPackage(self, name):
         doc = self._open()
         results = []
@@ -117,10 +105,10 @@ class XMLRepo:
                     if i =='category':
                         for j in pkg[i]:
                             if name.lower() in j.lower():
-                                results.append(pkg)
+                                results.append(pkg['name'])
                     if name.lower() in pkg[i]:
-                        results.append(pkg)
-        return results
+                        results.append(pkg['name'])
+        return  [ self._getPackage(i) for i in set(results) ]
     def _getAllPackages(self):
         doc = self._open()
         results = []
@@ -208,7 +196,13 @@ class XMLCache:
             label = i + '.xml'
             filename = self.xml_path + label
             wwwfile = self.server + label
-            wget = url.urlopen( wwwfile )
+            try:
+                wget = url.urlopen( wwwfile )
+            except:
+                from packagekit.backend import PackageKitBaseBackend
+                from packagekit.enums import ERROR_NO_CACHE
+                Pk = PackageKitBaseBackend("")
+                Pk.error(ERROR_NO_CACHE," %s can not open" % wwwfile)
             openfile = open( filename ,'w')
             openfile.writelines(wget.readlines())
             openfile.close()

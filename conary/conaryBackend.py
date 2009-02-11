@@ -39,7 +39,6 @@ from XMLCache import XMLCache as Cache
 from conaryInit import *
 
 # zodman fix
-#from Cache import Cache
 from conaryInit import init_conary_config, init_conary_client
 from conary import conarycfg, conaryclient
 from conarypk import ConaryPk
@@ -228,7 +227,7 @@ class PackageKitConaryBackend(PackageKitBaseBackend):
         cli = ConaryPk()
         return  cli.request_query(name)
 
-    def _do_search(self,filters, searchlist, where = "name"):
+    def _do_search(self, filters, searchlist, where = "name"):
         """
          searchlist(str)ist as the package for search like
          filters(str) as the filter
@@ -242,25 +241,15 @@ class PackageKitConaryBackend(PackageKitBaseBackend):
 
         troveTupleList = cache.search(searchlist, where )
 
-        if troveTupleList:
+        if len(troveTupleList) > 0 :
             for i in troveTupleList:
                 log.info("FOUND!!!!!! %s " % i["name"] )
             log.info("FOUND (%s) elements " % len(troveTupleList) )
         else:
             log.info("NOT FOUND %s " % searchlist )
-            self.error(ERROR_PACKAGE_NOT_FOUND, "Not Found %s on details" % searchlist )
+            self.error(ERROR_PACKAGE_NOT_FOUND, "Not Found %s " % searchlist )
 
-        total_troves = 100/len(troveTupleList)
-        steps = range(total_troves,101, total_troves)
-
-
-
-        for i, troveDict in enumerate( troveTupleList):
-            log.info(" doing resolve ")
-            log.info(troveDict)
-            self.status(STATUS_QUERY)
-            self.resolve( filters , [ troveDict['name'] ] )
-            self.percentage(steps[i])
+        self._resolve_list( fltlist, troveTupleList  )
 
     def _get_update(self, applyList, cache=True):
         updJob = self.client.newUpdateJob()
@@ -297,9 +286,32 @@ class PackageKitConaryBackend(PackageKitBaseBackend):
             applyList = [(name, (None, None), (version, flavor), True)]
         return self._do_update(applyList)
 
-    def _convertPackage(self, pkg ):
-       #version = versions.ThawVersion(pkg['version'])
-       pass
+    def _resolve_list(self, filters, pkgsList ):
+        log.info("======= _resolve_list =====")
+        specList = []
+        cli = ConaryPk()
+        for pkg in pkgsList:
+            name = pkg["name"]
+            repo = pkg["label"]
+            version = pkg["version"]
+            trove = name, None , cli.flavor
+            specList.append( trove  )
+        trovesList = cli.repos.findTroves(cli.default_label, specList )
+
+        pkgFilter = ConaryFilter(filters)
+        troves = trovesList.values()
+        for trovelst in troves:
+            t = trovelst[0]
+            installed = pkgFilter._pkg_is_installed( t[0] )
+            if installed:
+                pkgFilter.add_installed( trovelst )
+            else:
+                pkgFilter.add_available( trovelst )
+
+       
+        package_list = pkgFilter.post_process()
+        self._show_package_list(package_list)
+ 
     @ExceptionHandler
     def resolve(self, filters, package ):
         """ 
@@ -317,7 +329,7 @@ class PackageKitConaryBackend(PackageKitBaseBackend):
 
         filter = ConaryFilter(filters)
 
-        installed = filter._pkg_is_installed( pkg_dict )
+        installed = filter._pkg_is_installed( pkg_dict["name"] )
         
         conary_cli = ConaryPk()
 
